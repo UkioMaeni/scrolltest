@@ -1,8 +1,8 @@
+import 'dart:developer';
 import 'dart:ffi';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 void main() {
   runApp(const MyApp());
 }
@@ -90,15 +90,86 @@ double widgetHeight=0;
       }
     });
   }
+
+  
+  double offset0=0;
+  void _handleScroll(double offset) {
+    
+    if(offset<MediaQuery.of(context).size.height-300){
+      _panelHeight = offset;
+     
+    }else{
+      _panelHeight=MediaQuery.of(context).size.height-300;
+    }
+    double velocity=offset-offset0;
+    print("velocity"+velocity.toString());
+    if(velocity>6&&offset<MediaQuery.of(context).size.height-300){
+      return _scrollController.jumpTo(MediaQuery.of(context).size.height-300);
+    }
+
+      offset0=offset;
+      setState(() {
+        
+      });
+  }
   final ScrollController _scrollController = ScrollController();
 
+  bool processinf=false;
+
+  endScroll(){
+    print(_isPanelOpen);
+    if(!_isPanelOpen){
+      processinf=true;
+       print("geeeerr");
+       print((MediaQuery.of(context).size.height-300)/2);
+      if(_scrollController.offset>=(MediaQuery.of(context).size.height-300)/2&&_scrollController.offset<=MediaQuery.of(context).size.height-300){
+        Future.delayed(Duration.zero, () {
+             _scrollController.animateTo(MediaQuery.of(context).size.height-300, duration: Duration(milliseconds: 300), curve: Curves.linear);
+          });
+       
+      }else if(_scrollController.offset<(MediaQuery.of(context).size.height-300)/2){
+        print("uf");
+        Future.delayed(Duration.zero, () {
+            _scrollController.animateTo(0, duration: Duration(milliseconds: 300), curve: Curves.easeIn).then((_){
+                print(_scrollController.offset);
+              });
+          });
+        //_scrollController.jumpTo(0);
+        
+        
+      }
+     
+    }
+    processinf=false;
+  }
+double interpolateValue(double value, double minValue, double maxValue, double startRange, double endRange) {
+
+  if (value < minValue) {
+    print('interpolatedValue'+startRange.toString());
+    return startRange;
+    
+  } else if (value > maxValue) {
+    print('interpolatedValue'+endRange.toString());
+    return endRange;
+  }
+
+  // Нормализация значений
+  double normalizedValue = (value - minValue) / (maxValue - minValue);
+
+  // Интерполяция
+  double interpolatedValue = startRange + (endRange - startRange) * normalizedValue;
+  print('interpolatedValue'+interpolatedValue.toString());
+  return interpolatedValue;
+}
   @override
   void initState() {
     _scrollController.addListener(() { 
+    _scrollController;
      print(_scrollController.offset);
-      if(_isPanelOpen &&_scrollController.offset<=0){
+      if(!_isPanelOpen){
         setState(() {
-          _isPhys=false;
+          _handleScroll(_scrollController.offset);
+          
         });
       }else{
         setState(() {
@@ -114,6 +185,7 @@ double widgetHeight=0;
   //  print(_isPanelOpen); 
   //  print("_isPhys"); 
   //  print(_isPhys); 
+  interpolateValue(_panelHeight,0,MediaQuery.of(context).size.height-300,0,1);
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 0,
@@ -135,46 +207,68 @@ double widgetHeight=0;
               bottom: 0,
               left: 0,
               right: 0,
-              child: GestureDetector(
-                  onVerticalDragUpdate: _handleDragUpdate,
-                  onVerticalDragEnd: _handleDragEnd,
-                  child: Container(
+              child: Container(
                     width:  MediaQuery.of(context).size.width,
                     height: _panelHeight+300,
-                    color: Colors.red,
-                    child:LayoutBuilder(
-  builder: (context, constraints) {
-    widgetHeight = constraints.maxHeight; 
-    // Get widget height
-    // Use the height value
-    return Column(
-                    
-                      children: [
-                        Container(
-                          height: 300,
-                          width: 300,
-                          color: Colors.amber,
+                    color: const Color.fromARGB(0, 244, 67, 54),
+                    child:NotificationListener<ScrollNotification>(
+                      onNotification: (scrollNotification) { 
+                          if (scrollNotification is ScrollEndNotification &&!_isPanelOpen&&!processinf){
+                            endScroll();
+                          }
+                          return true;
+                        },
+                      child: ListView(
+                        controller: _scrollController,
+                          children: [
+                            SizedBox(height: _isPanelOpen?0:_panelHeight,),
+                             Stack(
+                                children: [
+                                  Opacity(
+                                    opacity: interpolateValue(_panelHeight,0,MediaQuery.of(context).size.height-300,0,1),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          height: 300,
+                                          width: 300,
+                                          color: Colors.black,
+                                        ),
+                                        Container(
+                                          height: 300,
+                                          width: 300,
+                                          color: Colors.blueAccent,
+                                        ),
+                                        Container(
+                                          height: 300,
+                                          width: 300,
+                                          color: Colors.amber,
+                                        ),
+                                        Container(
+                                          height: 300,
+                                          width: 300,
+                                          color: Colors.blueAccent,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Opacity(
+                                    opacity:1- interpolateValue(_panelHeight,0,MediaQuery.of(context).size.height-300,0,1),
+                                    child: Container(
+                                        height: 300,
+                                        width: 300,
+                                        color: Color.fromARGB(255, 28, 161, 57),
+                                      ),
+                                  ),
+                                ],
+                              ),
+                            
+                            
+                            
+                            
+                          ],
                         ),
-                        Container(
-                          height: 300,
-                          width: 300,
-                          color: Colors.black,
-                        ),
-                        Container(
-                          height: 300,
-                          width: 300,
-                          color: Colors.blueAccent,
-                        ),
-                        Container(
-                          height: 300,
-                          width: 300,
-                          color: Colors.amber,
-                        )
-                      ],
-                    );
-  },
-)                     
-                  ),
+                    ),            
+                  
                 ),
             )
           ],
